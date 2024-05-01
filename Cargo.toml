@@ -1,0 +1,15 @@
+[package]
+name = "africa_capitals_game"
+version = "1.0.0"
+edition = "2021"
+categories = [ "command-line-utilities", "games" ]
+keywords = [ "capital", "africa" ]
+authors = [ "software9119.technology" ]
+license = "MIT"
+description = "Guessing game for learning African capital cities."
+repository = "https://github.com/bravequickcleverfibreyarn/africa_capitals_game"
+homepage = "https://github.com/bravequickcleverfibreyarn/africa_capitals_game"
+
+[dependencies]
+noiserand = "1.0.0"
+rand_core = "0.6.4"

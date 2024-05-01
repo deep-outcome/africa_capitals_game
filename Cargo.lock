@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "africa-capitals-game"
+name = "africa_capitals_game"
 version = "1.0.0"
 dependencies = [
  "noiserand",

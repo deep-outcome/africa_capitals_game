@@ -4,6 +4,10 @@ use std::io::{stdin, stdout, Write};
 
 type DataItem = (&'static str, &'static str, &'static [&'static str]);
 
+// Possible new features:
+//    ⸻ Amount of hint: no, only country (flag mode), full (capital or country+capital [in fm]).
+//    ⸻ Guessing country: by flag, by capital.
+
 const COUNTRIES: usize = 54;
 #[rustfmt::skip]
 static mut MAY_2024: [DataItem; COUNTRIES] = [

@@ -4,9 +4,6 @@ use std::io::{stdin, stdout, Write};
 
 type DataItem = (&'static str, &'static str, &'static [&'static str]);
 
-// Possible new features:
-//    ⸻ Guessing country: by flag, by capital.
-
 const COUNTRIES: usize = 54;
 #[rustfmt::skip]
 static mut MAY_2024: [DataItem; COUNTRIES] = [
@@ -25,7 +22,7 @@ static mut MAY_2024: [DataItem; COUNTRIES] = [
     ("Republic of the Congo", "🇨🇬", &["Brazzaville"]),
     ("Djibouti", "🇩🇯", &["Djibouti"]),
     ("Egypt", "🇪🇬", &["Cairo"]),
-    ("Equatorial Guniea", "🇬🇶", &["Malabo"]),
+    ("Equatorial Guinea", "🇬🇶", &["Malabo"]),
     ("Eritrea", "🇪🇷", &["Asmara"]),
     ("Eswatini", "🇸🇿", &["Mbabane", "Lobamba"]),
     ("Ethiopia", "🇪🇹", &["Addis Ababa"]),
@@ -55,7 +52,7 @@ static mut MAY_2024: [DataItem; COUNTRIES] = [
     ("Seyschelles", "🇸🇨", &["Victoria"]),
     ("Sierra Leone", "🇸🇱", &["Freetown"]),
     ("Somalia", "🇸🇴", &["Mogadishu"]),
-    ( "South Africa", "🇿🇦", &["Pretoria", "Cape Town", "Bloemfontein"],),
+    ("South Africa", "🇿🇦", &["Pretoria", "Cape Town", "Bloemfontein"],),
     ("South Sudan", "🇸🇸", &["Juba"]),
     ("Sudan", "🇸🇩", &["Khartoum"]),
     ("Tanzania", "🇹🇿", &["Dodoma"]),
@@ -70,7 +67,7 @@ static mut MAY_2024: [DataItem; COUNTRIES] = [
 enum HintAmount {
     None,
     Full,
-    CountryOnly,
+    Partial,
 }
 
 fn main() -> std::io::Result<()> {
@@ -79,18 +76,15 @@ fn main() -> std::io::Result<()> {
 
     let mut stdout = stdout();
 
-    let mut colorize = true;
-    let mut flag_mode = false;
-    let mut hint_amount = HintAmount::Full;
-
     if args.contains(&"--help") {
         #[rustfmt::skip]writeln!(&mut stdout, "\n--- HELP ---\n")?;
-        #[rustfmt::skip]writeln!(&mut stdout, "    --help              |this help")?;
-        #[rustfmt::skip]writeln!(&mut stdout, "    --nocolor           |no output colorization")?;
-        #[rustfmt::skip]writeln!(&mut stdout, "    --list              |outputs country list")?;
-        #[rustfmt::skip]writeln!(&mut stdout, "    --flag-only         |flag only mode")?;
-        #[rustfmt::skip]writeln!(&mut stdout, "    --hint:none         |provides no hint on error")?;
-        #[rustfmt::skip]writeln!(&mut stdout, "    --hint:country-only |only country hint, use with --flag-only\n")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --help         |this help")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --nocolor      |no output colorization")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --list         |outputs country list")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --flag-only    |flag only mode")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --country-mode |guessing countries instead of capitals")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --hint:none    |provides no hint on error")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --hint:partial |only country or capitals hint, use with --flag-only\n")?;
 
         stdout.flush()?;
         return Ok(());
@@ -127,6 +121,11 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
+    let mut colorize = true;
+    let mut flag_mode = false;
+    let mut hint_amount = HintAmount::Full;
+    let mut country_mode = false;
+
     if args.contains(&"--flag-only") {
         flag_mode = true;
     }
@@ -137,10 +136,14 @@ fn main() -> std::io::Result<()> {
 
     if args.contains(&"--hint:none") {
         hint_amount = HintAmount::None
-    } else if args.contains(&"--hint:country-only") {
+    } else if args.contains(&"--hint:partial") {
         if flag_mode {
-            hint_amount = HintAmount::CountryOnly
+            hint_amount = HintAmount::Partial
         }
+    }
+
+    if args.contains(&"--country-mode") {
+        country_mode = true;
     }
 
     writeln!(
@@ -158,7 +161,7 @@ fn main() -> std::io::Result<()> {
     let b0 = rn.to_ne_bytes()[0];
 
     const LT_INX: usize = COUNTRIES - 1;
-    
+
     let mut ix1 = 0;
     let mut ix2 = match b0 as usize {
         x if x > LT_INX => x % COUNTRIES,
@@ -213,47 +216,90 @@ fn main() -> std::io::Result<()> {
         )?;
     };
 
+    let (mut print, mut color);
+
     let mut inx = 0;
     while inx < num {
-        let item = unsafe { MAY_2024[inx] };
+        let (country, flag, capitals) = unsafe { MAY_2024[inx] };
+        let capitals_join = capitals.join(", ");
 
-        let mut country = String::from(item.1);
-        if !flag_mode {
-            country.insert_str(0, ", ");
-            country.insert_str(0, item.0);
+        let mut question = String::new();
+
+        if country_mode {
+            question.push_str("Country for ");
+        } else {
+            question.push_str("Capital of ");
         }
 
-        writeln!(&mut stdout, "Capital of {}?", country)?;
+        if !flag_mode {
+            if country_mode {
+                question.push_str(&capitals_join);
+            } else {
+                question.push_str(country);
+            }
+
+            question.push_str(", ");
+        }
+
+        question.push_str(&flag);
+
+        writeln!(&mut stdout, "{}?", question)?;
         stdout.flush()?;
 
         buff.clear();
         read_line(&mut buff);
 
-        let (mut print, mut color) = ("Never", "\x1b[0;31m");
-        for &c in item.2 {
-            let buff = &buff;
-            if c == buff {
-                inx += 1;
-                (print, color) = ("Yes", "\x1b[0;32m")
+        let mut correct_answer = false;
+        let buff = &buff;
+        if country_mode {
+            if country == buff {
+                correct_answer = true;
+            }
+        } else {
+            for &c in capitals {
+                if c == buff {
+                    correct_answer = true;
+                    break;
+                }
             }
         }
 
         let mut hint = String::from("");
-        match hint_amount {
-            HintAmount::Full => {
-                hint.push_str(", ");
-                let join = item.2.join(", ");
-                hint.push_str(&join);
-                if flag_mode {
+        if correct_answer {
+            inx += 1;
+            (print, color) = ("Yes", "\x1b[0;32m");
+        } else {
+            match hint_amount {
+                HintAmount::Full => {
                     hint.push_str(", ");
-                    hint.push_str(item.0);
+
+                    if country_mode {
+                        hint.push_str(country);
+                    } else {
+                        hint.push_str(&capitals_join);
+                    }
+                    if flag_mode {
+                        hint.push_str(" (");
+                        if country_mode {
+                            hint.push_str(&capitals_join)
+                        } else {
+                            hint.push_str(country);
+                        }
+                        hint.push_str(")");
+                    }
                 }
+                HintAmount::Partial => {
+                    hint.push_str(". Hint: ");
+                    if country_mode {
+                        hint.push_str(&capitals_join);
+                    } else {
+                        hint.push_str(country);
+                    }
+                }
+                HintAmount::None => {}
             }
-            HintAmount::CountryOnly => {
-                hint.push_str(". Country: ");
-                hint.push_str(item.0);
-            }
-            HintAmount::None => {}            
+
+            (print, color) = ("Never", "\x1b[0;31m");
         }
 
         writeln!(

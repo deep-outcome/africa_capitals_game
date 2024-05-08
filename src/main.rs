@@ -5,7 +5,6 @@ use std::io::{stdin, stdout, Write};
 type DataItem = (&'static str, &'static str, &'static [&'static str]);
 
 // Possible new features:
-//    ⸻ Amount of hint: no, only country (flag mode), full (capital or country+capital [in fm]).
 //    ⸻ Guessing country: by flag, by capital.
 
 const COUNTRIES: usize = 54;
@@ -67,6 +66,13 @@ static mut MAY_2024: [DataItem; COUNTRIES] = [
     ("Zimbabwe", "🇿🇼", &["Harare"]),
 ];
 
+#[derive(PartialEq, Copy, Clone)]
+enum HintAmount {
+    None,
+    Full,
+    CountryOnly,
+}
+
 fn main() -> std::io::Result<()> {
     let args = std::env::args().collect::<Vec<String>>();
     let args: &[&str] = &args.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
@@ -75,13 +81,17 @@ fn main() -> std::io::Result<()> {
 
     let mut colorize = true;
     let mut flag_mode = false;
+    let mut hint_amount = HintAmount::Full;
 
     if args.contains(&"--help") {
-        writeln!(&mut stdout, "\n--- HELP ---\n")?;
-        writeln!(&mut stdout, "    --help      |this help")?;
-        writeln!(&mut stdout, "    --nocolor   |no output colorization")?;
-        writeln!(&mut stdout, "    --list      |outputs country list")?;
-        writeln!(&mut stdout, "    --flag-only |flag only mode\n")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "\n--- HELP ---\n")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --help              |this help")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --nocolor           |no output colorization")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --list              |outputs country list")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --flag-only         |flag only mode")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --hint:none         |provides no hint on error")?;
+        #[rustfmt::skip]writeln!(&mut stdout, "    --hint:country-only |only country hint, use with --flag-only\n")?;
+
         stdout.flush()?;
         return Ok(());
     }
@@ -125,6 +135,14 @@ fn main() -> std::io::Result<()> {
         colorize = false;
     }
 
+    if args.contains(&"--hint:none") {
+        hint_amount = HintAmount::None
+    } else if args.contains(&"--hint:country-only") {
+        if flag_mode {
+            hint_amount = HintAmount::CountryOnly
+        }
+    }
+
     writeln!(
         &mut stdout,
         "\n----> Welcome to the Africa Capitals Game <----\n"
@@ -140,15 +158,14 @@ fn main() -> std::io::Result<()> {
     let b0 = rn.to_ne_bytes()[0];
 
     const LT_INX: usize = COUNTRIES - 1;
-    let ix2_seed = match b0 as usize {
+    
+    let mut ix1 = 0;
+    let mut ix2 = match b0 as usize {
         x if x > LT_INX => x % COUNTRIES,
         x => x,
     };
 
-    let mut ix1 = 0;
-    let mut ix2 = ix2_seed;
-
-    while ix2 < COUNTRIES && ix1 < ix2_seed {
+    while ix2 < COUNTRIES {
         unsafe {
             let swap = MAY_2024[ix2];
             MAY_2024[ix2] = MAY_2024[ix1];
@@ -221,15 +238,27 @@ fn main() -> std::io::Result<()> {
             }
         }
 
-        let mut hint = item.2.join(", ");
-        if flag_mode {
-            hint.push_str(", ");
-            hint.push_str(item.0);
+        let mut hint = String::from("");
+        match hint_amount {
+            HintAmount::Full => {
+                hint.push_str(", ");
+                let join = item.2.join(", ");
+                hint.push_str(&join);
+                if flag_mode {
+                    hint.push_str(", ");
+                    hint.push_str(item.0);
+                }
+            }
+            HintAmount::CountryOnly => {
+                hint.push_str(". Country: ");
+                hint.push_str(item.0);
+            }
+            HintAmount::None => {}            
         }
 
         writeln!(
             &mut stdout,
-            "{}, {}.\n",
+            "{}{}.\n",
             colorized(colorize, print, color),
             hint
         )?;

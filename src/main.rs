@@ -195,7 +195,7 @@ fn main() -> std::io::Result<()> {
 
     let mut buff = String::with_capacity(2);
     let num = loop {
-        write!(&mut stdout, "Tell batch size [1-54]: ")?;
+        write!(&mut stdout, "Tell batch size [1-{}]: ", COUNTRIES)?;
         stdout.flush()?;
         buff.clear();
 

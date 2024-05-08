@@ -1,11 +1,12 @@
 # Africa Capitals Game
 Simple game turning around Africa capitals guessing.
 
-- Capitals are guessed either by country name+flag or flag only.
+- Capitals are guessed either by country name +flag or flag only.
 - Levels of hint: 
-    - default      — provides either capitals or country name + capitals
-    - none         — no hint on error
-    - country only — only country name (flag mode only)
+    - Default      — provides either answer or full information.
+    - None         — no hint on error.
+    - Partial      — only counterpart hint (in flag mode only).
+- Country mode — country guessing mode (flag mode available).
 
 
 ### Presentation

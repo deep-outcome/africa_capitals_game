@@ -1,6 +1,6 @@
 [package]
 name = "africa_capitals_game"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 categories = [ "command-line-utilities", "games" ]
 keywords = [ "capital", "africa" ]

@@ -10,6 +10,6 @@ Simple game turning around Africa capitals guessing.
 
 
 ### Presentation
+![Show](http://software9119.technology/files/africacapitalsgame/show2.png)
+![Help](http://software9119.technology/files/africacapitalsgame/help2.png)
 
-![Show](http://software9119.technology/files/africacapitalsgame/show.png)
-![Help](http://software9119.technology/files/africacapitalsgame/help.png)
